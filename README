@@ -1,0 +1,1 @@
+This package works with original it950x Linux driver. If driver has modified write syscall TxSend method returns number of free bytes in buffer, instead it always returns 0.
