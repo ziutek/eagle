@@ -59,7 +59,7 @@ func (d *Device) ioctl(cmd uintptr, dataptr interface{}) error {
 	return nil
 }
 
-func (d *Device) checkFreqBand(frequency int64, bandwidth int32) error {
+func (d *Device) checkFreqBand(frequency int64, bandwidth int) error {
 	var lowf, higf int64
 	switch d.family {
 	case I:
@@ -134,7 +134,7 @@ func (d *Device) TxModDriverInfo() (TxModDriverInfo, error) {
 }
 
 // TxSetChannel sets channel parameters (Hz unit).
-func (d *Device) TxSetChannel(frequency int64, bandwidth int32) error {
+func (d *Device) TxSetChannel(frequency int64, bandwidth int) error {
 	if err := d.checkFreqBand(frequency, bandwidth); err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (d *Device) TxSetModulation(mod dvb.Modulation, txmode dvb.TxMode, coderate
 	return data.error.check()
 }
 
-func (d *Device) TxGainRange(frequency int64, bandwidth int32) (min, max int, err error) {
+func (d *Device) TxGainRange(frequency int64, bandwidth int) (min, max int, err error) {
 	if err = d.checkFreqBand(frequency, bandwidth); err != nil {
 		return
 	}
@@ -284,7 +284,7 @@ func (d *Device) StopTransfer() error {
 }
 
 // TxSend sends b and return remaining buffer size (only modified driver returns
-// correct value).
+// correct value). len(b) should be <= 348*188.
 func (d *Device) TxSend(b []byte) (int, error) {
 	n, err := syscall.Write(d.fd, b)
 	if err != nil {

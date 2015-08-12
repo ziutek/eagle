@@ -12,7 +12,7 @@ import (
 
 func main() {
 	freq := int64(698e6)
-	bw := int32(8e6)
+	bw := int(8e6)
 	gain := -8
 
 	d, err := eagle.Open(0, eagle.I)
@@ -40,9 +40,8 @@ func main() {
 
 	f, err := os.Open("/home/michal/out.ts")
 	checkErr(err)
-	const numpkt = 40
+	const numpkt = 1
 	var buf [numpkt * 188]byte
-	//null := [188]byte{0x47, 0x1f, 0xff}
 
 	setRealtimeSched("output", 50)
 
@@ -51,18 +50,18 @@ func main() {
 
 	const bitrate = 31668448
 	delay := (numpkt*time.Second*188*8 + bitrate/2) / bitrate
-	var delta, sendt time.Duration
+	var delta time.Duration
 
-	sendt = dtime()
-	for i := 0; ; i++ {
+	sendt := dtime()
+	for i := 0; i < 100; i++ {
 		_, err := io.ReadFull(f, buf[:])
 		checkErr(err)
-		nanosleep(sendt - dtime())
+		//nanosleep(sendt - dtime())
 		remain, err := d.TxSend(buf[:])
 		checkErr(err)
-		delta = (delta + delay*(500*188-time.Duration(remain))/(2e5*188)) / 2
+		delta = (delta*9 + delay*(500*188-time.Duration(remain))/(1e5*188)) / 10
 		sendt += delay + delta
-		//fmt.Println(remain/188, delta)
+		fmt.Println(remain, remain/188, delta)
 	}
 
 	checkErr(d.StopTransfer())
