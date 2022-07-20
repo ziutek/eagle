@@ -1,6 +1,6 @@
 /**
  *
- * Copyright (c) 2014 ITE Corporation. All rights reserved. 
+ * Copyright (c) 2013 ITE Corporation. All rights reserved. 
  *
  * Module Name:
  *   iocontrol.h
@@ -298,13 +298,6 @@ typedef struct {
 } TxGetOutputGainRequest, *PTxGetOutputGainRequest;
 
 typedef struct {
-	int			   remain;	 
-    __u32		   error;
-    Byte		   reserved[16];	
-} TxGetRemaining, *PTxGetRemaining;
-
-
-typedef struct {
     __u32		   error;
 	__u32         pbufferAddr;
     Byte		   reserved[16];	
@@ -552,10 +545,6 @@ typedef struct {
 #define IOCTL_ITE_MOD_GETOUTPUTGAIN \
 	_IOR(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_STANDARD + 0x2D, TxGetOutputGainRequest)
 
-
-#define IOCTL_ITE_MOD_GETREMAINING \
-	_IOR(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_STANDARD + 0x2E, TxGetRemaining)
-
 /**
  * Paramters: 	TxControlPowerSavingRequest struct
  */
@@ -773,6 +762,8 @@ typedef struct {
 #define IOCTL_ITE_MOD_GETFREQUENCYINDEX \
 	_IOW(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_OTHER + 0x15, TxGetFrequencyIndexRequest)	
 
+#define IOCTL_ZIUTEK_MOD_GETRBREMAIN \
+	_IO(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_OTHER + 0x20)
 	
 /***************************************************************************/
 /*                                ISDB-T                         */
@@ -811,13 +802,14 @@ typedef struct {
  */
 #define IOCTL_ITE_MOD_ADDPIDTOISDBTPIDFILTER \
 	_IOW(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_ISDBT + 0x04, TXAddPidToISDBTPidFilterRequest)
-	
+		
 /**
  * Get DTV Mode.
  * Paramters:	TxGetDTVModeRequest struct
  */
 #define IOCTL_ITE_MOD_GETDTVMODE \
 	_IOW(AFA_IOC_MAGIC, IOCTRL_ITE_GROUP_ISDBT + 0x05, TxGetDTVModeRequest)
+	
 
 
 Dword DemodIOCTLFun(

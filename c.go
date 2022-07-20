@@ -21,6 +21,7 @@ const (
 	modEnableTxMode     = C.IOCTL_ITE_MOD_ENABLETXMODE
 	modStartTransfer    = C.IOCTL_ITE_MOD_STARTTRANSFER
 	modStopTransfer     = C.IOCTL_ITE_MOD_STOPTRANSFER
+	modGetRBRemain      = C.IOCTL_ZIUTEK_MOD_GETRBREMAIN
 )
 
 const (

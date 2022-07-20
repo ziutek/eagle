@@ -48,15 +48,16 @@ func (d *Device) Close() error {
 	return syscall.Close(d.fd)
 }
 
-func (d *Device) ioctl(cmd uintptr, dataptr interface{}) error {
+func (d Device) ioctl(cmd uintptr, dataptr interface{}) (int, error) {
 	var a3 uintptr
 	if dataptr != nil {
 		a3 = reflect.ValueOf(dataptr).Pointer()
 	}
-	if _, _, e := syscall.Syscall(syscall.SYS_IOCTL, uintptr(d.fd), cmd, a3); e != 0 {
-		return e
+	r, _, e := syscall.Syscall(syscall.SYS_IOCTL, uintptr(d.fd), cmd, a3)
+	if e != 0 {
+		return int(r), e
 	}
-	return nil
+	return int(r), nil
 }
 
 func (d *Device) checkFreqBand(frequency int64, bandwidth int) error {
@@ -90,7 +91,7 @@ func (d *Device) TxChipType() (Type, error) {
 		error    Error
 		_        [16]byte
 	}
-	if err := d.ioctl(modGetChipType, &data); err != nil {
+	if _, err := d.ioctl(modGetChipType, &data); err != nil {
 		return 0, err
 	}
 	return data.chipType, data.error.check()
@@ -118,7 +119,7 @@ func (d *Device) TxModDriverInfo() (TxModDriverInfo, error) {
 		Error         Error
 		_             [128]byte
 	}
-	if err := d.ioctl(modGetDriverInfo, &data); err != nil {
+	if _, err := d.ioctl(modGetDriverInfo, &data); err != nil {
 		return TxModDriverInfo{}, err
 	}
 	info := TxModDriverInfo{
@@ -147,7 +148,7 @@ func (d *Device) TxSetChannel(frequency int64, bandwidth int) error {
 	}
 	data.bandwidth = uint16(bandwidth / 1e3)
 	data.frequency = uint32(frequency / 1e3)
-	if err := d.ioctl(modAcquireChannel, &data); err != nil {
+	if _, err := d.ioctl(modAcquireChannel, &data); err != nil {
 		return err
 	}
 	return data.error.check()
@@ -207,7 +208,7 @@ func (d *Device) TxSetModulation(mod dvb.Modulation, txmode dvb.TxMode, coderate
 	default:
 		return errors.New("not supported guard interval")
 	}
-	if err := d.ioctl(modSetModule, &data); err != nil {
+	if _, err := d.ioctl(modSetModule, &data); err != nil {
 		return err
 	}
 	return data.error.check()
@@ -227,7 +228,7 @@ func (d *Device) TxGainRange(frequency int64, bandwidth int) (min, max int, err 
 	}
 	data.frequency = uint32(frequency / 1e3)
 	data.bandwidth = uint16(bandwidth / 1e3)
-	if err = d.ioctl(modGetGainRange, &data); err != nil {
+	if _, err = d.ioctl(modGetGainRange, &data); err != nil {
 		return
 	}
 	min = int(data.minGain)
@@ -242,7 +243,7 @@ func (d *Device) TxOutputGain() (int, error) {
 		error Error
 		_     [16]byte
 	}
-	if err := d.ioctl(modGetOutputGain, &data); err != nil {
+	if _, err := d.ioctl(modGetOutputGain, &data); err != nil {
 		return 0, err
 	}
 	return int(data.gain), data.error.check()
@@ -254,7 +255,7 @@ func (d *Device) TxAdjustOutputGain(gain int) (int, error) {
 		error     Error
 	}
 	data.GainValue = cint(gain)
-	if err := d.ioctl(modAdjustOutputGain, &data); err != nil {
+	if _, err := d.ioctl(modAdjustOutputGain, &data); err != nil {
 		return 0, err
 	}
 	return int(data.GainValue), data.error.check()
@@ -269,29 +270,40 @@ func (d *Device) TxSetModeEnable(on bool) error {
 	if on {
 		data.OnOff = 1
 	}
-	if err := d.ioctl(modEnableTxMode, &data); err != nil {
+	if _, err := d.ioctl(modEnableTxMode, &data); err != nil {
 		return err
 	}
 	return data.error.check()
 }
 
 func (d *Device) StartTransfer() error {
-	return d.ioctl(modStartTransfer, nil)
+	_, err := d.ioctl(modStartTransfer, nil)
+	return err
 }
 
 func (d *Device) StopTransfer() error {
-	return d.ioctl(modStopTransfer, nil)
+	_, err := d.ioctl(modStopTransfer, nil)
+	return err
 }
 
-// TxSend sends b and return remaining buffer size (only modified driver returns
-// correct value). len(b) should be <= 348*188.
-func (d *Device) TxSend(b []byte) (int, error) {
-	n, err := syscall.Write(d.fd, b)
+// TxRingBuffRemain is implemented in modified driver only.
+func (d Device) TxRingBufRemain() (int, error) {
+	return d.ioctl(modGetRBRemain, nil)
+}
+
+// TxSend sends TS data to the modulator. len(b) should be <= 348*188. This
+// method is the only way to initiate USB URBs transfers inside driver. You
+// can use len(b) == 0 to initiate URB transfer without new data.
+// See:
+// it950x_linux_v14.06.06.1/it950x_driver/it950x-core.c:/^DWORD Tx_RingBuffer\(
+// for more info.
+func (d *Device) TxSend(b []byte) error {
+	e, err := syscall.Write(d.fd, b)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	if n < 0 {
-		return 0, Error(-n)
+	if e != 0 {
+		return Error(e)
 	}
-	return n, nil
+	return nil
 }

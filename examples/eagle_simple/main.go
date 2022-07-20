@@ -53,11 +53,12 @@ func main() {
 	var delta time.Duration
 
 	sendt := dtime()
-	for i := 0; i < 100; i++ {
+	for i := 0; ; i++ {
 		_, err := io.ReadFull(f, buf[:])
 		checkErr(err)
-		//nanosleep(sendt - dtime())
-		remain, err := d.TxSend(buf[:])
+		nanosleep(sendt - dtime())
+		checkErr(d.TxSend(buf[:]))
+		remain, err := d.TxRingBufRemain()
 		checkErr(err)
 		delta = (delta*9 + delay*(500*188-time.Duration(remain))/(1e5*188)) / 10
 		sendt += delay + delta
